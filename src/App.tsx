@@ -20,6 +20,7 @@ type StockMovement = {
   created_at: string
 }
 function App() {
+  const [activeTab, setActiveTab] = useState<'stocks' | 'movements'>('stocks')
   const [movementStockCode, setMovementStockCode] = useState('')
 const [movementType, setMovementType] = useState<'GIRIS' | 'CIKIS'>('GIRIS')
 const [movementQuantity, setMovementQuantity] = useState('')
@@ -291,9 +292,9 @@ useEffect(() => {
         </div>
 
         <div className="menu-label">ANA MENÜ</div>
-        <div className="menu-item active">▦　Stok Kartları</div>
+        <button type="button" className={activeTab === 'stocks' ? 'menu-item menu-button active' : 'menu-item menu-button'} onClick={() => setActiveTab('stocks')}>▦　Stok Kartları</button>
         <div className="menu-item">▤　Depo ve Raflar</div>
-        <div className="menu-item">⇄　Stok Hareketleri</div>
+        <button type="button" className={activeTab === 'movements' ? 'menu-item menu-button active' : 'menu-item menu-button'} onClick={() => setActiveTab('movements')}>⇄　Stok Hareketleri</button>
         <div className="menu-item">▥　Sayım İşlemleri</div>
         <div className="menu-item">⚙　Ayarlar</div>
         <div className="sidebar-bottom">Depo yönetimi artık daha kolay.</div>
@@ -303,11 +304,13 @@ useEffect(() => {
         <header className="topbar">
           <div>
             <span className="eyebrow">DEPO YÖNETİMİ</span>
-            <h1>Stok Kartları</h1>
+            <h1>{activeTab === 'stocks' ? 'Stok Kartları' : 'Stok Hareketleri'}</h1>
           </div>
           <div className="user-badge">Yönetici</div>
         </header>
-        <p role="status">
+        {activeTab === 'stocks' && (
+          <>
+<p role="status">
   {syncing
     ? 'Stoklar eşitleniyor...'
     : syncMessage || 'Eşitleme mesajı oluşmadı.'}
@@ -422,6 +425,9 @@ useEffect(() => {
             )}
           </section>
         </div>
+</>
+        )}
+        {activeTab === 'movements' && (
 <div className="layout">
   <section className="panel">
     <div className="panel-heading">
@@ -547,6 +553,8 @@ useEffect(() => {
     )}
   </section>
 </div>
+        
+        )}
         <footer>DepoTakip <span>•</span> Stok Yönetim Sistemi</footer>
       </section>
     </main>

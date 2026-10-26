@@ -409,3 +409,51 @@ footer span {
     padding: 18px;
   }
 }
+
+
+/* Sol menudeki calisan sekme butonlari */
+.menu-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+}
+
+.menu-button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Mobil ekranda da sekmeler gorunsun */
+@media (max-width: 600px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    display: flex;
+    width: 100%;
+    padding: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sidebar .brand {
+    width: 100%;
+    padding: 0 8px 8px;
+  }
+
+  .sidebar .menu-label,
+  .sidebar .menu-item:not(.menu-button),
+  .sidebar-bottom {
+    display: none;
+  }
+
+  .sidebar .menu-button {
+    width: auto;
+    margin-bottom: 0;
+  }
+}
