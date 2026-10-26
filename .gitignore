@@ -30,3 +30,6 @@ dist-ssr
 /src/stok-yedek.json
 /src/src/
 /src/stoklari-aktar.ts
+.vercel
+.env*
+/src/App.tsx.before-movement-repair.bak

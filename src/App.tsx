@@ -9,9 +9,24 @@ type Stock = {
   barcode: string
   unit: string
   description: string
+  quantity: number
 }
-
+type StockMovement = {
+  id: number
+  stock_code: string
+  movement_type: 'GIRIS' | 'CIKIS'
+  quantity: number
+  notes: string
+  created_at: string
+}
 function App() {
+  const [movementStockCode, setMovementStockCode] = useState('')
+const [movementType, setMovementType] = useState<'GIRIS' | 'CIKIS'>('GIRIS')
+const [movementQuantity, setMovementQuantity] = useState('')
+const [movementNotes, setMovementNotes] = useState('')
+const [movementMessage, setMovementMessage] = useState('')
+const [movements, setMovements] = useState<StockMovement[]>([])
+const [movementsLoading, setMovementsLoading] = useState(false)
   const [stocks, setStocks] = useState<Stock[]>(() => {
     try {
       const savedStocks = localStorage.getItem('depotakip_stocks')
@@ -45,7 +60,7 @@ useEffect(() => {
 
       const { data, error } = await supabase
         .from('stocks')
-        .select('code, name, barcode, unit, description')
+        .select('code, name, barcode, unit, description, quantity')
 
       if (error) throw error
 
@@ -55,6 +70,7 @@ useEffect(() => {
         barcode: row.barcode ?? '',
         unit: row.unit ?? 'Adet',
         description: row.description ?? '',
+        quantity: Number(row.quantity ?? 0),
       }))
 
       const cloudCodes = new Set(
@@ -101,26 +117,102 @@ useEffect(() => {
   }
 
   void syncStocks()
-
   return () => {
     cancelled = true
   }
 }, [])
-    async function addStock(e: React.FormEvent<HTMLFormElement>) {
+
+  async function loadMovementHistory() {
+    setMovementsLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .select('id, stock_code, movement_type, quantity, notes, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error) throw error
+      setMovements((data ?? []) as StockMovement[])
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      setMovementMessage('Movement history could not load: ' + detail)
+    } finally {
+      setMovementsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadMovementHistory()
+  }, [])
+
+  async function addMovement(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const quantity = Number(movementQuantity)
+
+    if (!movementStockCode) {
+      setMovementMessage('Please select a stock item.')
+      return
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setMovementMessage('Quantity must be greater than zero.')
+      return
+    }
+
+    setMovementMessage('Saving movement...')
+
+    try {
+      const { data, error } = await supabase.rpc(
+        'register_stock_movement',
+        {
+          p_stock_code: movementStockCode,
+          p_movement_type: movementType,
+          p_quantity: quantity,
+          p_notes: movementNotes.trim(),
+        }
+      )
+
+      if (error) throw error
+
+      const result = (
+        data as Array<{ current_quantity: number | string }> | null
+      )?.[0]
+
+      if (!result) throw new Error('No result returned from database.')
+
+      setStocks(previous =>
+        previous.map(stock =>
+          stock.code === movementStockCode
+            ? { ...stock, quantity: Number(result.current_quantity) }
+            : stock
+        )
+      )
+
+      setMovementMessage('Stock movement saved successfully.')
+      setMovementQuantity('')
+      setMovementNotes('')
+      await loadMovementHistory()
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      setMovementMessage('Could not save movement: ' + detail)
+    }
+  }
+
+  async function addStock(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     const cleanCode = code.trim()
     const cleanName = name.trim()
 
     if (!cleanCode || !cleanName) {
-      setMessage('Stok kodu ve stok adı zorunludur.')
+      setMessage('Stock code and name are required.')
       return
     }
 
-    if (stocks.some(
-      stock => stock.code.toLowerCase() === cleanCode.toLowerCase()
+    if (stocks.some(stock =>
+      stock.code.toLowerCase() === cleanCode.toLowerCase()
     )) {
-      setMessage('Bu stok kodu zaten kayıtlı.')
+      setMessage('This stock code already exists.')
       return
     }
 
@@ -130,9 +222,10 @@ useEffect(() => {
       barcode: barcode.trim(),
       unit,
       description: description.trim(),
+      quantity: 0,
     }
 
-    setMessage('Stok buluta kaydediliyor...')
+    setMessage('Saving stock to cloud...')
 
     try {
       const { error } = await supabase
@@ -140,7 +233,7 @@ useEffect(() => {
         .insert(newStock)
 
       if (error) {
-        setMessage('Buluta kaydedilemedi: ' + error.message)
+        setMessage('Could not save stock: ' + error.message)
         return
       }
 
@@ -150,10 +243,10 @@ useEffect(() => {
       setBarcode('')
       setUnit('Adet')
       setDescription('')
-      setMessage('Stok başarıyla buluta kaydedildi.')
+      setMessage('Stock saved successfully.')
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      setMessage('Kayıt sırasında hata oluştu: ' + detail)
+      setMessage('Save failed: ' + detail)
     }
   }
   function backupStocks() {
@@ -220,7 +313,6 @@ useEffect(() => {
     : syncMessage || 'Eşitleme mesajı oluşmadı.'}
 </p>
 <p style={{ color: 'red', fontSize: '20px' }}>
-  KONTROL TESTİ
 </p>
         <div className="welcome">
           <div>
@@ -318,6 +410,9 @@ useEffect(() => {
                     <div className="stock-info">
                       <strong>{stock.name}</strong>
                       <span>{stock.code} · {stock.unit}</span>
+                      <span>
+  Mevcut miktar: {Number(stock.quantity ?? 0).toLocaleString('tr-TR')} {stock.unit}
+</span>
                       {stock.barcode && <small>Barkod: {stock.barcode}</small>}
                       {stock.description && <small>{stock.description}</small>}
                     </div>
@@ -327,7 +422,131 @@ useEffect(() => {
             )}
           </section>
         </div>
+<div className="layout">
+  <section className="panel">
+    <div className="panel-heading">
+      <div className="panel-icon">⇄</div>
+      <div>
+        <h3>Stok Giriş / Çıkış</h3>
+        <p>Depoya giren ve depodan çıkan miktarları kaydet.</p>
+      </div>
+    </div>
 
+    <form onSubmit={addMovement}>
+      <label>Stok seçimi
+        <select
+          value={movementStockCode}
+          onChange={e => setMovementStockCode(e.target.value)}
+          required
+        >
+          <option value="">Stok seç</option>
+          {stocks.map(stock => (
+            <option key={stock.code} value={stock.code}>
+              {stock.code} — {stock.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label>Hareket türü
+        <select
+          value={movementType}
+          onChange={e =>
+            setMovementType(e.target.value as 'GIRIS' | 'CIKIS')
+          }
+        >
+          <option value="GIRIS">Stok Girişi</option>
+          <option value="CIKIS">Stok Çıkışı</option>
+        </select>
+      </label>
+
+      <label>Miktar
+        <input
+          type="number"
+          min="0.001"
+          step="0.001"
+          value={movementQuantity}
+          onChange={e => setMovementQuantity(e.target.value)}
+          placeholder="Miktar gir"
+          required
+        />
+      </label>
+
+      <label>Açıklama
+        <textarea
+          value={movementNotes}
+          onChange={e => setMovementNotes(e.target.value)}
+          placeholder="Örn. Satın alma, sevkiyat veya sayım"
+          rows={3}
+        />
+      </label>
+
+      {movementMessage && (
+        <div className="message" role="status">
+          {movementMessage}
+        </div>
+      )}
+
+      <div className="form-actions">
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => {
+            setMovementQuantity('')
+            setMovementNotes('')
+            setMovementMessage('')
+          }}
+        >
+          Temizle
+        </button>
+        <button type="submit" className="primary">
+          Hareketi Kaydet
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section className="panel">
+    <div className="panel-heading">
+      <div className="panel-icon">≡</div>
+      <div>
+        <h3>Son Stok Hareketleri</h3>
+        <p>En son 50 giriş ve çıkış işlemi</p>
+      </div>
+    </div>
+
+    {movementsLoading ? (
+      <p>Hareketler yükleniyor...</p>
+    ) : movements.length === 0 ? (
+      <p>Henüz stok hareketi yok.</p>
+    ) : (
+      <div className="stock-list">
+        {movements.map(movement => (
+          <div className="stock-row" key={movement.id}>
+            <div className="stock-symbol">
+              {movement.movement_type === 'GIRIS' ? '↓' : '↑'}
+            </div>
+            <div className="stock-info">
+              <strong>
+                {movement.stock_code} ·{' '}
+                {movement.movement_type === 'GIRIS'
+                  ? 'Stok Girişi'
+                  : 'Stok Çıkışı'}
+              </strong>
+              <span>
+                {Number(movement.quantity).toLocaleString('tr-TR')}
+              </span>
+              <small>
+                {new Date(movement.created_at).toLocaleString('tr-TR')}
+              </small>
+              {movement.notes && <small>{movement.notes}</small>}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+</div>
         <footer>DepoTakip <span>•</span> Stok Yönetim Sistemi</footer>
       </section>
     </main>
