@@ -20,7 +20,7 @@ type StockMovement = {
   created_at: string
 }
 function App() {
-  const [activeTab, setActiveTab] = useState<'stocks' | 'movements'>('stocks')
+  const [activeTab, setActiveTab] = useState<'home' | 'stocks' | 'movements'>('home')
   const [movementStockCode, setMovementStockCode] = useState('')
 const [movementType, setMovementType] = useState<'GIRIS' | 'CIKIS'>('GIRIS')
 const [movementQuantity, setMovementQuantity] = useState('')
@@ -286,12 +286,13 @@ useEffect(() => {
         <div className="brand">
           <div className="brand-icon">D</div>
           <div>
-            <h2>DepoTakip</h2>
+            <h2>FNDEPO</h2>
             <span>Stok Yönetim Sistemi</span>
           </div>
         </div>
 
         <div className="menu-label">ANA MENÜ</div>
+        <button type="button" className={activeTab === 'home' ? 'menu-item menu-button active' : 'menu-item menu-button'} onClick={() => setActiveTab('home')}>Ana Sayfa</button>
         <button type="button" className={activeTab === 'stocks' ? 'menu-item menu-button active' : 'menu-item menu-button'} onClick={() => setActiveTab('stocks')}>▦　Stok Kartları</button>
         <div className="menu-item">▤　Depo ve Raflar</div>
         <button type="button" className={activeTab === 'movements' ? 'menu-item menu-button active' : 'menu-item menu-button'} onClick={() => setActiveTab('movements')}>⇄　Stok Hareketleri</button>
@@ -304,10 +305,49 @@ useEffect(() => {
         <header className="topbar">
           <div>
             <span className="eyebrow">DEPO YÖNETİMİ</span>
-            <h1>{activeTab === 'stocks' ? 'Stok Kartları' : 'Stok Hareketleri'}</h1>
+          <h1>{activeTab === 'home' ? 'Ana Sayfa' : activeTab === 'stocks' ? 'Stok Kartlari' : 'Stok Hareketleri'}</h1>
           </div>
           <div className="user-badge">Yönetici</div>
         </header>
+        {activeTab === 'home' && (
+          <>
+            <div className="welcome">
+              <div>
+                <h2>Ana Sayfaya Hoş Geldin</h2>
+                <p>İşlem yapmak için aşağıdan veya soldaki menüden bir bölüm seç.</p>
+              </div>
+            </div>
+
+            <div className="layout">
+              <section className="panel">
+                <div className="panel-heading">
+                  <div className="panel-icon">S</div>
+                  <div>
+                    <h3>Stok Kartları</h3>
+                    <p>Ürün kartlarını görüntüle, ara ve yeni stok ekle.</p>
+                  </div>
+                </div>
+                <p>Kayıtlı stok sayısı: <strong>{stocks.length}</strong></p>
+                <button type="button" className="primary" onClick={() => setActiveTab('stocks')}>
+                  Stok Kartlarına Git
+                </button>
+              </section>
+
+              <section className="panel">
+                <div className="panel-heading">
+                  <div className="panel-icon">H</div>
+                  <div>
+                    <h3>Stok Hareketleri</h3>
+                    <p>Stok girişlerini, çıkışlarını ve işlem geçmişini yönet.</p>
+                  </div>
+                </div>
+                <button type="button" className="primary" onClick={() => setActiveTab('movements')}>
+                  Stok Hareketlerine Git
+                </button>
+              </section>
+            </div>
+          </>
+        )}
         {activeTab === 'stocks' && (
           <>
 <p role="status">
@@ -555,7 +595,7 @@ useEffect(() => {
 </div>
         
         )}
-        <footer>DepoTakip <span>•</span> Stok Yönetim Sistemi</footer>
+        <footer>FNDEPO <span>•</span> Stok Yönetim Sistemi</footer>
       </section>
     </main>
   )
