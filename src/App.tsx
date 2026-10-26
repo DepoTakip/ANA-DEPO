@@ -17,6 +17,7 @@ type StockMovement = {
   movement_type: 'GIRIS' | 'CIKIS'
   quantity: number
   notes: string
+  created_by_name: string
   created_at: string
 }
 function App() {
@@ -585,6 +586,9 @@ useEffect(() => {
               <small>
                 {new Date(movement.created_at).toLocaleString('tr-TR')}
               </small>
+              <small>
+  İşlemi yapan: {movement.created_by_name || 'İsimsiz kullanıcı'}
+</small>
               {movement.notes && <small>{movement.notes}</small>}
             </div>
           </div>
