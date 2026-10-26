@@ -65,13 +65,13 @@ export default function AuthGate({ children }: AuthGateProps) {
   }
 
   if (loading) {
-    return <main style={{ padding: 30 }}>DepoTakip açılıyor...</main>
+    return <main style={{ padding: 30 }}>FNDEPO AÇILIYOR...</main>
   }
 
   if (!session) {
     return (
       <main style={{ maxWidth: 400, margin: '60px auto', padding: 24 }}>
-        <h1>DepoTakip</h1>
+        <h1>FNDEPO</h1>
         <h2>Giriş Yap</h2>
 
         <form onSubmit={handleLogin}>
