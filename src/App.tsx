@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import './App.css';
 
-// Varsayılan sekmeler ve durum yönetimi
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'racks' | 'stock-in' | 'control' | 'settings'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Sekme değiştiğinde mobil menüyü otomatik kapat
   const handleTabChange = (tab: 'dashboard' | 'racks' | 'stock-in' | 'control' | 'settings') => {
     setActiveTab(tab);
-    setIsMobileMenuOpen(false);
+    setIsMobileMenuOpen(false); // Menüye tıklayınca mobilde menüyü kapat
   };
 
   return (
@@ -28,7 +26,7 @@ export default function App() {
         </button>
       </div>
 
-      {/* AÇILIR SOL / MOBİL MENÜ */}
+      {/* SOL MENÜ / MOBİL AÇILIR MENÜ */}
       <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
         <div className="brand">
           <div className="brand-icon">F</div>
@@ -77,7 +75,7 @@ export default function App() {
         <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)}></div>
       )}
 
-      {/* İÇERİK ALANI */}
+      {/* ANA İÇERİK ALANI */}
       <main className="content">
         <header className="topbar">
           <div>
@@ -94,19 +92,70 @@ export default function App() {
         </header>
 
         <div className="layout">
-          {/* İÇERİK SEKMELERİ - MEVCUT BİLEŞENLERİNİZİ VEYA FORMLARINIZI BURAYA KOYABİLİRSİNİZ */}
-          <div className="panel">
-            <div className="panel-heading">
-              <div className="panel-icon">📌</div>
-              <div>
-                <h3>Aktif Sekme İçeriği</h3>
-                <p>Şu an görüntülenen sekme: <strong>{activeTab.toUpperCase()}</strong></p>
+          {activeTab === 'dashboard' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">📊</div>
+                <div>
+                  <h3>Genel Durum</h3>
+                  <p>Depodaki toplam ürün ve raf durumu özet ekranı.</p>
+                </div>
               </div>
+              <p>Ana sayfa içerikleri burada yer alır.</p>
             </div>
-            <p style={{ fontSize: '14px', color: '#64748b' }}>
-              Depo ve stok takip sisteminizin bu ekranında seçilen sekmenin verileri listelenir.
-            </p>
-          </div>
+          )}
+
+          {activeTab === 'racks' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">📦</div>
+                <div>
+                  <h3>Depo Rafları</h3>
+                  <p>Raf tanımlama ve düzenleme işlemleri.</p>
+                </div>
+              </div>
+              <p>Raf yönetim ekranı burada açılır.</p>
+            </div>
+          )}
+
+          {activeTab === 'stock-in' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">📥</div>
+                <div>
+                  <h3>Stok Giriş / Çıkış</h3>
+                  <p>Ürün ekleme ve düşme işlemleri.</p>
+                </div>
+              </div>
+              <p>Stok hareketleri formu burada yer alır.</p>
+            </div>
+          )}
+
+          {activeTab === 'control' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">🔍</div>
+                <div>
+                  <h3>Stok Kontrol & Arama</h3>
+                  <p>Anlık arama ve filtreleme yapın.</p>
+                </div>
+              </div>
+              <p>Stok kontrol tablosu burada yer alır.</p>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">⚙️</div>
+                <div>
+                  <h3>Sistem Ayarları</h3>
+                  <p>Veritabanı sıfırlama ve sistem tercihleri.</p>
+                </div>
+              </div>
+              <p>Ayarlar paneli burada yer alır.</p>
+            </div>
+          )}
         </div>
       </main>
     </div>
