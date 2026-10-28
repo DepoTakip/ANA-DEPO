@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import './App.css';
 
-// Örnek başlangıç stokları (Supabase bağlayana kadar veya test için)
 interface StockItem {
   id: string;
   part_code: string;
@@ -11,17 +10,15 @@ interface StockItem {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'racks' | 'stock-in' | 'control' | 'settings'>('home');
-  
-  // Stok arama ve liste state'leri
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'racks' | 'stock-in' | 'control' | 'settings'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+  
   const [stocks] = useState<StockItem[]>([
     { id: '1', part_code: 'FLT-001', part_name: 'Yağ Filtresi', shelf: 'A-1', quantity: 12 },
     { id: '2', part_code: 'BRK-202', part_name: 'Fren Balatası', shelf: 'B-2', quantity: 5 },
     { id: '3', part_code: 'MSK-303', part_name: 'Mazot Filtresi', shelf: 'A-2', quantity: 8 }
   ]);
 
-  // Arama filtresi
   const filteredStocks = stocks.filter(item =>
     item.part_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.part_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -30,173 +27,162 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* ÜST BAR */}
-      <header className="main-header">
-        <div className="header-brand">
-          <div className="brand-logo">F</div>
+      {/* SOL MENÜ (KLASİK MASAÜSTÜ YAPI) */}
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-icon">F</div>
           <div>
             <h2>FNDEPO</h2>
-            <span>Ağır Vasıta Stok Yönetimi</span>
+            <span>Stok Yönetim Sistemi</span>
           </div>
         </div>
 
-        {activeTab !== 'home' && (
-          <button className="back-home-btn" onClick={() => setActiveTab('home')}>
-            🏠 Ana Sayfa'ya Dön
+        <div className="menu-container">
+          <button 
+            className={`menu-button ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            📊 Ana Sayfa
           </button>
-        )}
-      </header>
+          <button 
+            className={`menu-button ${activeTab === 'racks' ? 'active' : ''}`}
+            onClick={() => setActiveTab('racks')}
+          >
+            📦 Depo Rafları
+          </button>
+          <button 
+            className={`menu-button ${activeTab === 'stock-in' ? 'active' : ''}`}
+            onClick={() => setActiveTab('stock-in')}
+          >
+            📥 Stok Giriş / Çıkış
+          </button>
+          <button 
+            className={`menu-button ${activeTab === 'control' ? 'active' : ''}`}
+            onClick={() => setActiveTab('control')}
+          >
+            🔍 Stok Kontrol
+          </button>
+          <button 
+            className={`menu-button ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            ⚙️ Ayarlar
+          </button>
+        </div>
+      </aside>
 
-      {/* İÇERİK ALANI */}
-      <main className="main-content">
-        
-        {/* 1. ANA SAYFA / KARTLAR */}
-        {activeTab === 'home' && (
-          <div className="home-container">
-            <div className="welcome-banner">
-              <h1>Hoş Geldiniz 👋</h1>
-              <p>Lütfen yapmak istediğiniz işlemi seçin:</p>
-            </div>
-
-            <div className="menu-grid">
-              <button className="menu-card" onClick={() => setActiveTab('control')}>
-                <div className="card-icon">🔍</div>
-                <div className="card-info">
-                  <h3>Stok Kontrol & Arama</h3>
-                  <p>Parça kodu, ad veya rafa göre arama yapın</p>
-                </div>
-              </button>
-
-              <button className="menu-card" onClick={() => setActiveTab('stock-in')}>
-                <div className="card-icon">📥</div>
-                <div className="card-info">
-                  <h3>Stok Giriş / Çıkış</h3>
-                  <p>Yeni ürün ekleyin veya adet güncelleyin</p>
-                </div>
-              </button>
-
-              <button className="menu-card" onClick={() => setActiveTab('racks')}>
-                <div className="card-icon">📦</div>
-                <div className="card-info">
-                  <h3>Depo Rafları</h3>
-                  <p>Raf tanımlama ve konum düzenleme</p>
-                </div>
-              </button>
-
-              <button className="menu-card" onClick={() => setActiveTab('settings')}>
-                <div className="card-icon">⚙️</div>
-                <div className="card-info">
-                  <h3>Sistem Ayarları</h3>
-                  <p>Veritabanı ve genel ayarlar</p>
-                </div>
-              </button>
-            </div>
+      {/* ANA İÇERİK ALANI */}
+      <main className="content">
+        <header className="topbar">
+          <div>
+            <span className="eyebrow">FNDEPO YÖNETİMİ</span>
+            <h1>
+              {activeTab === 'dashboard' && 'Ana Sayfa & Özet'}
+              {activeTab === 'racks' && 'Depo Rafları Yönetimi'}
+              {activeTab === 'stock-in' && 'Stok Giriş & Çıkış İşlemleri'}
+              {activeTab === 'control' && 'Stok Kontrol & Arama'}
+              {activeTab === 'settings' && 'Sistem Ayarları'}
+            </h1>
           </div>
-        )}
+          <div className="user-badge">Yönetici</div>
+        </header>
 
-        {/* 2. STOK KONTROL VE ARAMA EKRANI (ARAMA MOTORU GERİ GELDİ) */}
-        {activeTab === 'control' && (
-          <div className="page-panel">
-            <div className="page-header">
-              <h2>🔍 Stok Kontrol & Arama</h2>
-              <p>Parçaları hızlıca filtreleyin ve arayın.</p>
+        <div className="layout">
+          {activeTab === 'dashboard' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">📊</div>
+                <div>
+                  <h3>Genel Durum</h3>
+                  <p>Depodaki toplam ürün ve raf durumu özet ekranı.</p>
+                </div>
+              </div>
+              <p>Ana sayfa içerikleri burada yer alır.</p>
             </div>
-            <div className="page-body">
-              {/* Arama Kutusu */}
+          )}
+
+          {activeTab === 'racks' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">📦</div>
+                <div>
+                  <h3>Depo Rafları</h3>
+                  <p>Raf tanımlama ve düzenleme işlemleri.</p>
+                </div>
+              </div>
+              <p>Raf yönetim ekranı burada açılır.</p>
+            </div>
+          )}
+
+          {activeTab === 'stock-in' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">📥</div>
+                <div>
+                  <h3>Stok Giriş / Çıkış</h3>
+                  <p>Ürün ekleme ve düşme işlemleri.</p>
+                </div>
+              </div>
+              <p>Stok hareketleri formu burada yer alır.</p>
+            </div>
+          )}
+
+          {activeTab === 'control' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">🔍</div>
+                <div>
+                  <h3>Stok Kontrol & Arama</h3>
+                  <p>Anlık arama ve filtreleme yapın.</p>
+                </div>
+              </div>
+
               <input 
                 type="text" 
-                placeholder="Parça Kodu, Ürün Adı veya Raf No ile ara..." 
+                placeholder="Parça Kodu, Ürün Adı veya Raf No ara..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  marginBottom: '16px',
-                  outline: 'none'
-                }}
+                style={{ width: '100%', padding: '10px', marginTop: '14px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
 
-              {/* Arama Sonuç Tablosu */}
-              <div style={{ overflowX: 'auto' }}>
+              <div style={{ marginTop: '16px', overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
-                    <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1', fontSize: '12px', color: '#475569' }}>
-                      <th style={{ padding: '10px' }}>PARÇA KODU</th>
-                      <th style={{ padding: '10px' }}>ÜRÜN ADI</th>
-                      <th style={{ padding: '10px' }}>RAF</th>
-                      <th style={{ padding: '10px' }}>ADET</th>
+                    <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1', fontSize: '12px' }}>
+                      <th style={{ padding: '8px' }}>PARÇA KODU</th>
+                      <th style={{ padding: '8px' }}>ÜRÜN ADI</th>
+                      <th style={{ padding: '8px' }}>RAF</th>
+                      <th style={{ padding: '8px' }}>ADET</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredStocks.length > 0 ? (
-                      filteredStocks.map((item) => (
-                        <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: '14px' }}>
-                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#2563eb' }}>{item.part_code}</td>
-                          <td style={{ padding: '10px' }}>{item.part_name}</td>
-                          <td style={{ padding: '10px' }}>
-                            <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
-                              {item.shelf}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px', fontWeight: 'bold' }}>{item.quantity} Adet</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
-                          Aradığınız kritere uygun parça bulunamadı.
-                        </td>
+                    {filteredStocks.map(item => (
+                      <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: '14px' }}>
+                        <td style={{ padding: '8px', fontWeight: 'bold' }}>{item.part_code}</td>
+                        <td style={{ padding: '8px' }}>{item.part_name}</td>
+                        <td style={{ padding: '8px' }}>{item.shelf}</td>
+                        <td style={{ padding: '8px' }}>{item.quantity} Adet</td>
                       </tr>
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 3. STOK GİRİŞ EKRANI */}
-        {activeTab === 'stock-in' && (
-          <div className="page-panel">
-            <div className="page-header">
-              <h2>📥 Stok Giriş & Çıkış İşlemleri</h2>
-              <p>Yeni parça ekleme ve miktar düşme.</p>
+          {activeTab === 'settings' && (
+            <div className="panel">
+              <div className="panel-heading">
+                <div className="panel-icon">⚙️</div>
+                <div>
+                  <h3>Sistem Ayarları</h3>
+                  <p>Veritabanı sıfırlama ve sistem tercihleri.</p>
+                </div>
+              </div>
+              <p>Ayarlar paneli burada yer alır.</p>
             </div>
-            <div className="page-body">
-              <p className="placeholder-text">Stok giriş formu burada yer alacak.</p>
-            </div>
-          </div>
-        )}
-
-        {/* 4. DEPO RAFLARI EKRANI */}
-        {activeTab === 'racks' && (
-          <div className="page-panel">
-            <div className="page-header">
-              <h2>📦 Depo Rafları Yönetimi</h2>
-              <p>Raf tanımlama ve düzenleme işlemleri.</p>
-            </div>
-            <div className="page-body">
-              <p className="placeholder-text">Raf yönetim ekranı burada yer alacak.</p>
-            </div>
-          </div>
-        )}
-
-        {/* 5. AYARLAR EKRANI */}
-        {activeTab === 'settings' && (
-          <div className="page-panel">
-            <div className="page-header">
-              <h2>⚙️ Sistem Ayarları</h2>
-              <p>Veritabanı bağlantısı ve ayarlar.</p>
-            </div>
-            <div className="page-body">
-              <p className="placeholder-text">Ayarlar paneli burada yer alacak.</p>
-            </div>
-          </div>
-        )}
-
+          )}
+        </div>
       </main>
     </div>
   );
