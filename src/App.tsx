@@ -2,161 +2,131 @@ import { useState } from 'react';
 import './App.css';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'racks' | 'stock-in' | 'control' | 'settings'>('dashboard');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const handleTabChange = (tab: 'dashboard' | 'racks' | 'stock-in' | 'control' | 'settings') => {
-    setActiveTab(tab);
-    setIsMobileMenuOpen(false); // Menüye tıklayınca mobilde menüyü kapat
-  };
+  const [activeTab, setActiveTab] = useState<'home' | 'racks' | 'stock-in' | 'control' | 'settings'>('home');
 
   return (
     <div className="app">
-      {/* MOBİL ÜST BAR & MENÜ BUTONU */}
-      <div className="mobile-header">
-        <div className="brand-mobile">
-          <div className="brand-icon">F</div>
-          <h2>FNDEPO</h2>
-        </div>
-        <button 
-          className="mobile-menu-btn" 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? '✕ KAPAT' : '☰ MENÜ'}
-        </button>
-      </div>
-
-      {/* SOL MENÜ / MOBİL AÇILIR MENÜ */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
-        <div className="brand">
-          <div className="brand-icon">F</div>
+      {/* ÜST BAR / MASAÜSTÜ & MOBİL ORTAK */}
+      <header className="main-header">
+        <div className="header-brand">
+          <div className="brand-logo">F</div>
           <div>
             <h2>FNDEPO</h2>
-            <span>Stok Yönetim Sistemi</span>
+            <span>Ağır Vasıta Stok Yönetimi</span>
           </div>
         </div>
 
-        <div className="menu-container">
-          <button 
-            className={`menu-button ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => handleTabChange('dashboard')}
-          >
-            📊 Ana Sayfa
+        {/* Ana sayfada değilsek çıkan 'Ana Sayfa'ya Dön' butonu */}
+        {activeTab !== 'home' && (
+          <button className="back-home-btn" onClick={() => setActiveTab('home')}>
+            🏠 Ana Sayfa'ya Dön
           </button>
-          <button 
-            className={`menu-button ${activeTab === 'racks' ? 'active' : ''}`}
-            onClick={() => handleTabChange('racks')}
-          >
-            📦 Depo Rafları
-          </button>
-          <button 
-            className={`menu-button ${activeTab === 'stock-in' ? 'active' : ''}`}
-            onClick={() => handleTabChange('stock-in')}
-          >
-            📥 Stok Giriş / Çıkış
-          </button>
-          <button 
-            className={`menu-button ${activeTab === 'control' ? 'active' : ''}`}
-            onClick={() => handleTabChange('control')}
-          >
-            🔍 Stok Kontrol
-          </button>
-          <button 
-            className={`menu-button ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => handleTabChange('settings')}
-          >
-            ⚙️ Ayarlar
-          </button>
-        </div>
-      </aside>
+        )}
+      </header>
 
-      {/* MOBİL MENÜ AÇIKKEN ARKA PLANI KARARTMA */}
-      {isMobileMenuOpen && (
-        <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)}></div>
-      )}
-
-      {/* ANA İÇERİK ALANI */}
-      <main className="content">
-        <header className="topbar">
-          <div>
-            <span className="eyebrow">FNDEPO YÖNETİMİ</span>
-            <h1>
-              {activeTab === 'dashboard' && 'Ana Sayfa & Özet'}
-              {activeTab === 'racks' && 'Depo Rafları Yönetimi'}
-              {activeTab === 'stock-in' && 'Stok Giriş & Çıkış İşlemleri'}
-              {activeTab === 'control' && 'Stok Kontrol & Arama'}
-              {activeTab === 'settings' && 'Sistem Ayarları'}
-            </h1>
-          </div>
-          <div className="user-badge">Yönetici</div>
-        </header>
-
-        <div className="layout">
-          {activeTab === 'dashboard' && (
-            <div className="panel">
-              <div className="panel-heading">
-                <div className="panel-icon">📊</div>
-                <div>
-                  <h3>Genel Durum</h3>
-                  <p>Depodaki toplam ürün ve raf durumu özet ekranı.</p>
-                </div>
-              </div>
-              <p>Ana sayfa içerikleri burada yer alır.</p>
+      {/* İÇERİK ALANI */}
+      <main className="main-content">
+        
+        {/* 1. ANA SAYFA / MOBİL MENÜ KARTLARI */}
+        {activeTab === 'home' && (
+          <div className="home-container">
+            <div className="welcome-banner">
+              <h1>Hoş Geldiniz 👋</h1>
+              <p>Lütfen yapmak istediğiniz işlemi aşağıdaki menüden seçin:</p>
             </div>
-          )}
 
-          {activeTab === 'racks' && (
-            <div className="panel">
-              <div className="panel-heading">
-                <div className="panel-icon">📦</div>
-                <div>
+            <div className="menu-grid">
+              <button className="menu-card" onClick={() => setActiveTab('racks')}>
+                <div className="card-icon">📦</div>
+                <div className="card-info">
                   <h3>Depo Rafları</h3>
-                  <p>Raf tanımlama ve düzenleme işlemleri.</p>
+                  <p>Raf tanımlama ve konum düzenleme</p>
                 </div>
-              </div>
-              <p>Raf yönetim ekranı burada açılır.</p>
-            </div>
-          )}
+              </button>
 
-          {activeTab === 'stock-in' && (
-            <div className="panel">
-              <div className="panel-heading">
-                <div className="panel-icon">📥</div>
-                <div>
+              <button className="menu-card" onClick={() => setActiveTab('stock-in')}>
+                <div className="card-icon">📥</div>
+                <div className="card-info">
                   <h3>Stok Giriş / Çıkış</h3>
-                  <p>Ürün ekleme ve düşme işlemleri.</p>
+                  <p>Yeni parça ekleme ve stok düşme</p>
                 </div>
-              </div>
-              <p>Stok hareketleri formu burada yer alır.</p>
-            </div>
-          )}
+              </button>
 
-          {activeTab === 'control' && (
-            <div className="panel">
-              <div className="panel-heading">
-                <div className="panel-icon">🔍</div>
-                <div>
+              <button className="menu-card" onClick={() => setActiveTab('control')}>
+                <div className="card-icon">🔍</div>
+                <div className="card-info">
                   <h3>Stok Kontrol & Arama</h3>
-                  <p>Anlık arama ve filtreleme yapın.</p>
+                  <p>Ağır vasıta parçaları anlık arama</p>
                 </div>
-              </div>
-              <p>Stok kontrol tablosu burada yer alır.</p>
-            </div>
-          )}
+              </button>
 
-          {activeTab === 'settings' && (
-            <div className="panel">
-              <div className="panel-heading">
-                <div className="panel-icon">⚙️</div>
-                <div>
+              <button className="menu-card" onClick={() => setActiveTab('settings')}>
+                <div className="card-icon">⚙️</div>
+                <div className="card-info">
                   <h3>Sistem Ayarları</h3>
-                  <p>Veritabanı sıfırlama ve sistem tercihleri.</p>
+                  <p>Veritabanı sıfırlama ve yapılandırma</p>
                 </div>
-              </div>
-              <p>Ayarlar paneli burada yer alır.</p>
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* 2. DEPO RAFLARI EKRANI */}
+        {activeTab === 'racks' && (
+          <div className="page-panel">
+            <div className="page-header">
+              <h2>📦 Depo Rafları Yönetimi</h2>
+              <p>Depodaki raflarınızın listesi ve düzenleme paneli.</p>
+            </div>
+            <div className="page-body">
+              {/* Buraya Depo Rafları formunuz/bileşeniniz gelecek */}
+              <p className="placeholder-text">Depo rafları içeriği burada görüntülenecek.</p>
+            </div>
+          </div>
+        )}
+
+        {/* 3. STOK GİRİŞ / ÇIKIŞ EKRANI */}
+        {activeTab === 'stock-in' && (
+          <div className="page-panel">
+            <div className="page-header">
+              <h2>📥 Stok Giriş & Çıkış İşlemleri</h2>
+              <p>Parça ekleme ve stok miktar güncellemeleri.</p>
+            </div>
+            <div className="page-body">
+              {/* Buraya Stok Giriş formunuz/bileşeniniz gelecek */}
+              <p className="placeholder-text">Stok giriş/çıkış formu burada görüntülenecek.</p>
+            </div>
+          </div>
+        )}
+
+        {/* 4. STOK KONTROL EKRANI */}
+        {activeTab === 'control' && (
+          <div className="page-panel">
+            <div className="page-header">
+              <h2>🔍 Stok Kontrol & Parça Arama</h2>
+              <p>Depodaki parçaları hızlıca filtreleyin ve arayın.</p>
+            </div>
+            <div className="page-body">
+              {/* Buraya Stok Kontrol tablonuz/bileşeniniz gelecek */}
+              <p className="placeholder-text">Stok arama ve kontrol tablosu burada görüntülenecek.</p>
+            </div>
+          </div>
+        )}
+
+        {/* 5. AYARLAR EKRANI */}
+        {activeTab === 'settings' && (
+          <div className="page-panel">
+            <div className="page-header">
+              <h2>⚙️ Sistem Ayarları</h2>
+              <p>Veritabanı ve genel sistem ayarları.</p>
+            </div>
+            <div className="page-body">
+              {/* Buraya Ayarlar bileşeniniz gelecek */}
+              <p className="placeholder-text">Sistem ayarları burada görüntülenecek.</p>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
