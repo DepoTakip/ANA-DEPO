@@ -1,8 +1,32 @@
 import { useState } from 'react';
 import './App.css';
 
+// Örnek başlangıç stokları (Supabase bağlayana kadar veya test için)
+interface StockItem {
+  id: string;
+  part_code: string;
+  part_name: string;
+  shelf: string;
+  quantity: number;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'racks' | 'stock-in' | 'control' | 'settings'>('home');
+  
+  // Stok arama ve liste state'leri
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stocks] = useState<StockItem[]>([
+    { id: '1', part_code: 'FLT-001', part_name: 'Yağ Filtresi', shelf: 'A-1', quantity: 12 },
+    { id: '2', part_code: 'BRK-202', part_name: 'Fren Balatası', shelf: 'B-2', quantity: 5 },
+    { id: '3', part_code: 'MSK-303', part_name: 'Mazot Filtresi', shelf: 'A-2', quantity: 8 }
+  ]);
+
+  // Arama filtresi
+  const filteredStocks = stocks.filter(item =>
+    item.part_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.part_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.shelf.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="app">
@@ -70,7 +94,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 2. STOK KONTROL EKRANI */}
+        {/* 2. STOK KONTROL VE ARAMA EKRANI (ARAMA MOTORU GERİ GELDİ) */}
         {activeTab === 'control' && (
           <div className="page-panel">
             <div className="page-header">
@@ -78,7 +102,58 @@ export default function App() {
               <p>Parçaları hızlıca filtreleyin ve arayın.</p>
             </div>
             <div className="page-body">
-              <p className="placeholder-text">Stok arama ve liste ekranı burada yer alacak.</p>
+              {/* Arama Kutusu */}
+              <input 
+                type="text" 
+                placeholder="Parça Kodu, Ürün Adı veya Raf No ile ara..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '15px',
+                  marginBottom: '16px',
+                  outline: 'none'
+                }}
+              />
+
+              {/* Arama Sonuç Tablosu */}
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1', fontSize: '12px', color: '#475569' }}>
+                      <th style={{ padding: '10px' }}>PARÇA KODU</th>
+                      <th style={{ padding: '10px' }}>ÜRÜN ADI</th>
+                      <th style={{ padding: '10px' }}>RAF</th>
+                      <th style={{ padding: '10px' }}>ADET</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStocks.length > 0 ? (
+                      filteredStocks.map((item) => (
+                        <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: '14px' }}>
+                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#2563eb' }}>{item.part_code}</td>
+                          <td style={{ padding: '10px' }}>{item.part_name}</td>
+                          <td style={{ padding: '10px' }}>
+                            <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
+                              {item.shelf}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px', fontWeight: 'bold' }}>{item.quantity} Adet</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
+                          Aradığınız kritere uygun parça bulunamadı.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
