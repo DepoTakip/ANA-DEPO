@@ -418,8 +418,13 @@ function App() {
     setResetLoading(true)
 
     try {
-      await supabase.from('stock_movements').delete().neq('id', 0)
-      await supabase.from('stocks').update({ quantity: 0 }).neq('code', '')
+      // Supabase veritabanındaki hareketleri kalıcı olarak sil
+      const { error: moveError } = await supabase.from('stock_movements').delete().neq('id', 0)
+      if (moveError) throw moveError
+
+      // Supabase veritabanındaki stok miktarlarını 0 yap
+      const { error: stockError } = await supabase.from('stocks').update({ quantity: 0 }).neq('code', '')
+      if (stockError) throw stockError
 
       localStorage.removeItem('depotakip_shelves')
       const resetStocks = stocks.map(s => ({ ...s, quantity: 0 }))
@@ -430,7 +435,7 @@ function App() {
       setMovements([])
       setSelectedStockCard(null)
 
-      alert('Raf atamaları ve stok hareketleri başarıyla temizlendi! Stok kartlarınız yerinde duruyor.')
+      alert('Raf atamaları ve stok hareketleri buluttan kalıcı olarak temizlendi!')
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       alert('Temizleme sırasında hata oluştu: ' + detail)
@@ -466,8 +471,8 @@ function App() {
   const filteredControlStocks = controlSearch.trim()
     ? stocks.filter(
         stock =>
-          stock.code.toLowerCase().includes(controlSearch.toLowerCase()) ||
-          stock.name.toLowerCase().includes(controlSearch.toLowerCase())
+          stock.code.toLowerCase().includes(controlSearch.toLowerCase().trim()) ||
+          stock.name.toLowerCase().includes(controlSearch.toLowerCase().trim())
       )
     : stocks
 
@@ -524,7 +529,6 @@ function App() {
           ⇄ Stok Hareketleri
         </button>
 
-        {/* AYARLAR SEKMESİ SADECE YÖNETİCİYE ÖZEL GÖRÜNÜR */}
         {isAdmin && (
           <button
             type="button"
@@ -568,7 +572,6 @@ function App() {
           </div>
         )}
 
-        {/* STOK KARTLARI EKRANI */}
         {activeTab === 'stocks' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <p role="status" style={{ fontSize: '13px', color: '#666', margin: 0 }}>
@@ -835,7 +838,6 @@ function App() {
           </div>
         )}
 
-        {/* DEPO VE RAFLAR BÖLÜMÜ */}
         {activeTab === 'shelves' && (
           <div className="layout">
             <section className="panel">
@@ -916,83 +918,87 @@ function App() {
                       type="text"
                       value={shelfCodeInput}
                       onChange={e => setShelfCodeInput(e.target.value)}
-                      placeholder="Örn. A-01, RAF-3"
+                      placeholder="Örn. A-01"
                       required
                     />
                   </label>
 
                   <label>
-                    Raf Miktarı <b>*</b>
+                    Miktar <b>*</b>
                     <input
                       type="number"
                       min="1"
                       value={shelfQuantityInput}
                       onChange={e => setShelfQuantityInput(e.target.value)}
-                      placeholder="Adet gir"
+                      placeholder="Adet girin"
                       required
                     />
                   </label>
                 </div>
 
-                {shelfMessage && (
-                  <div className="message" role="status" style={{ marginTop: '12px' }}>
-                    {shelfMessage}
-                  </div>
-                )}
+                {shelfMessage && <div className="message" style={{ marginTop: '12px' }}>{shelfMessage}</div>}
 
                 <div className="form-actions" style={{ marginTop: '16px' }}>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {
-                      setShelfStockCode('')
-                      setShelfSearch('')
-                      setShelfCodeInput('')
-                      setShelfQuantityInput('')
-                      setShelfMessage('')
-                    }}
-                  >
-                    Temizle
-                  </button>
-
-                  <button type="submit" className="primary">
-                    ＋ Rafa Yerleştir
+                  <button type="submit" className="primary" style={{ width: '100%' }}>
+                    Raflara Yerleştir
                   </button>
                 </div>
               </form>
             </section>
 
             <section className="panel">
-              <div className="panel-heading">
-                <div className="panel-icon" style={{ background: '#f8fafc', color: '#475569' }}>📋</div>
+              <div className="list-heading">
                 <div>
-                  <h3>Raf Yerleşim Listesi</h3>
-                  <p>Depodaki raflarda hangi üründen ne kadar var.</p>
+                  <h3>Aktif Raf Yerleşimleri</h3>
+                  <p>Depodaki raflarda bulunan ürünler</p>
                 </div>
               </div>
 
               {shelves.length === 0 ? (
                 <div className="empty-state" style={{ padding: '30px 0' }}>
-                  <div className="empty-icon">📍</div>
-                  <h3>Henüz Raf Ataması Yapılmadı</h3>
-                  <p>Soldaki formu kullanarak ürünleri raflara yerleştirebilirsiniz.</p>
+                  <div className="empty-icon">▤</div>
+                  <h3>Raf Ataması Yok</h3>
+                  <p>Henüz hiçbir ürüne raf tanımlanmamış.</p>
                 </div>
               ) : (
-                <div className="stock-list" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
                   {shelves.map(item => {
-                    const st = stocks.find(s => s.code === item.stock_code)
+                    const matchedStock = stocks.find(s => s.code === item.stock_code)
                     return (
-                      <div className="stock-row" key={item.id} style={{ padding: '12px 14px', borderRadius: '8px', background: '#f8fafc', marginBottom: '8px', borderLeft: '4px solid #2563eb' }}>
-                        <div className="stock-info" style={{ width: '100%' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                            <strong style={{ fontSize: '14px', color: '#0f172a' }}>📍 Raf: {item.shelf_code}</strong>
-                            <span style={{ fontSize: '12px', fontWeight: '700', padding: '3px 8px', borderRadius: '12px', background: '#dbeafe', color: '#1e40af' }}>
-                              {item.quantity} {st?.unit || 'Adet'}
-                            </span>
+                      <div
+                        key={item.id}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontWeight: 'bold', color: '#2563eb' }}>Raf: {item.shelf_code}</span>
+                          <div style={{ fontSize: '13px', color: '#334155', marginTop: '2px' }}>
+                            {item.stock_code} — {matchedStock ? matchedStock.name : 'Silinmiş Ürün'}
                           </div>
-                          <div style={{ fontSize: '13px', color: '#334155' }}>
-                            🏷️ {item.stock_code} — {st ? st.name : 'Bilinmeyen Ürün'}
-                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold', fontSize: '13px' }}>
+                            {item.quantity} {matchedStock?.unit ?? 'Adet'}
+                          </span>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              className="secondary"
+                              style={{ fontSize: '11px', padding: '4px 8px', color: '#dc2626', borderColor: '#fca5a5' }}
+                              onClick={() => {
+                                setShelves(prev => prev.filter(sh => sh.id !== item.id))
+                              }}
+                            >
+                              Kaldır
+                            </button>
+                          )}
                         </div>
                       </div>
                     )
@@ -1003,139 +1009,78 @@ function App() {
           </div>
         )}
 
-        {/* STOK KONTROL EKRANI */}
         {activeTab === 'control' && (
-          <div className="layout" style={{ gridTemplateColumns: '1fr' }}>
-            <section className="panel">
-              <div className="panel-heading">
-                <div className="panel-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>📊</div>
-                <div>
-                  <h3>Depo Genel Stok ve Raf Kontrolü</h3>
-                  <p>Tüm ürünlerin toplam stok miktarlarını ve raflardaki dağılım durumlarını tek ekrandan inceleyin.</p>
-                </div>
+          <div className="panel">
+            <div className="list-heading">
+              <div>
+                <h3>Stok Kontrol ve Depo Durumu</h3>
+                <p>Tüm ürünlerin anlık miktar ve raf dağılımları</p>
               </div>
+              <input
+                type="text"
+                value={controlSearch}
+                onChange={e => setControlSearch(e.target.value)}
+                placeholder="Listede ara..."
+                style={{ width: '220px', padding: '6px 12px', fontSize: '13px' }}
+              />
+            </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <input
-                  type="text"
-                  value={controlSearch}
-                  onChange={e => setControlSearch(e.target.value)}
-                  placeholder="Stok kodu veya adı ile filtrele..."
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              {filteredControlStocks.length === 0 ? (
-                <div className="empty-state" style={{ padding: '30px 0' }}>
-                  <div className="empty-icon">📦</div>
-                  <h3>Kayıtlı Stok Bulunamadı</h3>
-                  <p>Sistemde henüz eklenmiş bir stok kartı yok.</p>
-                </div>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1', color: '#475569' }}>
-                        <th style={{ padding: '12px' }}>Stok Kodu</th>
-                        <th style={{ padding: '12px' }}>Ürün Adı</th>
-                        <th style={{ padding: '12px' }}>Toplam Miktar</th>
-                        <th style={{ padding: '12px' }}>Raflardaki Dağılım</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredControlStocks.map(stock => {
-                        const productShelves = shelves.filter(sh => sh.stock_code === stock.code)
-                        const totalAssigned = productShelves.reduce((sum, s) => sum + s.quantity, 0)
-                        const unassigned = stock.quantity - totalAssigned
-
-                        return (
-                          <tr key={stock.code} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                            <td style={{ padding: '12px', fontWeight: 'bold', color: '#2563eb' }}>{stock.code}</td>
-                            <td style={{ padding: '12px', color: '#0f172a' }}>{stock.name}</td>
-                            <td style={{ padding: '12px', fontWeight: 'bold' }}>
-                              {stock.quantity} {stock.unit}
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              {productShelves.length === 0 ? (
-                                <span style={{ color: '#d97706', fontSize: '12px', background: '#fef3c7', padding: '3px 8px', borderRadius: '4px', fontWeight: '600' }}>
-                                  ⚠️ Hiçbir rafta yok
+            <div style={{ overflowX: 'auto', marginTop: '15px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>
+                    <th style={{ padding: '10px' }}>Stok Kodu</th>
+                    <th style={{ padding: '10px' }}>Stok Adı</th>
+                    <th style={{ padding: '10px' }}>Toplam Miktar</th>
+                    <th style={{ padding: '10px' }}>Raflardaki Dağılım</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredControlStocks.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+                        Stok kaydı bulunamadı.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredControlStocks.map(stock => {
+                      const productShelves = shelves.filter(sh => sh.stock_code === stock.code)
+                      return (
+                        <tr key={stock.code} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '10px', fontWeight: 'bold' }}>{stock.code}</td>
+                          <td style={{ padding: '10px' }}>{stock.name}</td>
+                          <td style={{ padding: '10px', color: '#2563eb', fontWeight: 'bold' }}>
+                            {stock.quantity} {stock.unit}
+                          </td>
+                          <td style={{ padding: '10px' }}>
+                            {productShelves.length === 0 ? (
+                              <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>Rafta yok</span>
+                            ) : (
+                              productShelves.map(sh => (
+                                <span key={sh.id} style={{ display: 'inline-block', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '2px 6px', borderRadius: '4px', marginRight: '5px', fontSize: '12px' }}>
+                                  <strong>{sh.shelf_code}</strong>: {sh.quantity}
                                 </span>
-                              ) : (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                  {productShelves.map(sh => (
-                                    <span key={sh.id} style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                      {sh.shelf_code}: {sh.quantity} {stock.unit}
-                                    </span>
-                                  ))}
-                                  {unassigned > 0 && (
-                                    <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                      Boşta: {unassigned} {stock.unit}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+                              ))
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* YÖNETİCİYE ÖZEL AYARLAR EKRANI */}
-        {activeTab === 'settings' && isAdmin && (
-          <div className="layout" style={{ gridTemplateColumns: '1fr' }}>
-            <section className="panel" style={{ borderLeft: '4px solid #3b82f6' }}>
-              <div className="panel-heading">
-                <div className="panel-icon" style={{ background: '#eff6ff', color: '#3b82f6' }}>⚙</div>
-                <div>
-                  <h3>Hareket ve Raf Temizliği</h3>
-                  <p>Stok kartlarınız silinmeden sadece raf atamalarını ve hareket geçmişini sıfırlayın.</p>
-                </div>
-              </div>
-
-              <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '16px', borderRadius: '8px', marginBottom: '20px' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '16px' }}>ℹ️ Hareketleri ve Rafları Sıfırla</h4>
-                <p style={{ margin: 0, fontSize: '14px', color: '#475569' }}>
-                  Bu işlem <strong>stok kartlarınızı (ürün tanımlarınızı) silmez</strong>. Yalnızca geçmiş hareketleri ve raf yerleşimlerini temizleyerek stok miktarlarını 0'a getirir.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleResetMovementsAndShelves}
-                disabled={resetLoading}
-                style={{
-                  background: '#2563eb',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: resetLoading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
-                }}
-              >
-                {resetLoading ? 'Temizleniyor...' : '🔄 Sadece Hareketleri ve Rafları Sıfırla'}
-              </button>
-            </section>
-          </div>
-        )}
-
-        {/* STOK HAREKETLERİ */}
         {activeTab === 'movements' && (
           <div className="layout">
             <section className="panel">
               <div className="panel-heading">
-                <div className="panel-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>⇄</div>
+                <div className="panel-icon" style={{ background: '#fef3c7', color: '#d97706' }}>⇄</div>
                 <div>
                   <h3>Stok Giriş / Çıkış İşlemi</h3>
-                  <p>Aşağıdan ürünü seçip miktar ve hareket türünü belirtin.</p>
+                  <p>Depoya ürün girişi veya çıkışı yapın.</p>
                 </div>
               </div>
 
@@ -1147,48 +1092,14 @@ function App() {
                   <input
                     id="movement-search-input"
                     type="text"
-                    value={
-                      movementStockCode
-                        ? `${movementStockCode} — ${stocks.find(s => s.code === movementStockCode)?.name || ''}`
-                        : movementSearch
-                    }
+                    value={movementStockCode ? `${movementStockCode} — ${stocks.find(s => s.code === movementStockCode)?.name || ''}` : movementSearch}
                     onChange={e => {
                       setMovementSearch(e.target.value)
                       setMovementStockCode('')
                     }}
-                    placeholder="Stok kodu veya adı yazarak arayın..."
+                    placeholder="Stok kodu veya adı ile arayın..."
                     required={!movementStockCode}
-                    style={{
-                      borderColor: movementStockCode ? '#22c55e' : undefined,
-                      backgroundColor: movementStockCode ? '#f0fdf4' : '#ffffff',
-                      fontWeight: movementStockCode ? '600' : 'normal',
-                      color: movementStockCode ? '#15803d' : '#0f172a',
-                    }}
                   />
-
-                  {movementStockCode && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMovementStockCode('')
-                        setMovementSearch('')
-                      }}
-                      style={{
-                        position: 'absolute',
-                        right: '8px',
-                        top: '32px',
-                        background: '#e2e8f0',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        color: '#475569',
-                      }}
-                    >
-                      ✕ Değiştir
-                    </button>
-                  )}
 
                   {movementSearch.trim() && !movementStockCode && filteredMovementStocks.length > 0 && (
                     <div
@@ -1200,11 +1111,10 @@ function App() {
                         background: '#ffffff',
                         border: '1px solid #cbd5e1',
                         borderRadius: '8px',
-                        maxHeight: '220px',
+                        maxHeight: '180px',
                         overflowY: 'auto',
-                        zIndex: 50,
-                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
-                        marginTop: '4px',
+                        zIndex: 10,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                       }}
                     >
                       {filteredMovementStocks.map(stock => (
@@ -1215,23 +1125,15 @@ function App() {
                             setMovementSearch('')
                           }}
                           style={{
-                            padding: '10px 14px',
+                            padding: '8px 10px',
                             cursor: 'pointer',
-                            borderBottom: '1px solid #f1f5f9',
+                            borderBottom: '1px solid #eee',
                             fontSize: '13px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
                           }}
-                          onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
-                          onMouseLeave={e => (e.currentTarget.style.background = '#ffffff')}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#f9f9f9')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
                         >
-                          <div>
-                            <strong style={{ color: '#2563eb' }}>{stock.code}</strong> — {stock.name}
-                          </div>
-                          <span style={{ fontSize: '12px', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                            Mevcut: {stock.quantity} {stock.unit}
-                          </span>
+                          <strong>{stock.code}</strong> — {stock.name} (Mevcut: {stock.quantity} {stock.unit})
                         </div>
                       ))}
                     </div>
@@ -1240,29 +1142,21 @@ function App() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <label>
-                    Hareket Türü
-                    <select
-                      value={movementType}
-                      onChange={e => setMovementType(e.target.value as 'GIRIS' | 'CIKIS')}
-                      style={{
-                        fontWeight: '600',
-                        color: movementType === 'GIRIS' ? '#15803d' : '#b91c1c',
-                      }}
-                    >
-                      <option value="GIRIS">🟢 Stok Girişi (+)</option>
-                      <option value="CIKIS">🔴 Stok Çıkışı (-)</option>
+                    Hareket Türü <b>*</b>
+                    <select value={movementType} onChange={e => setMovementType(e.target.value as 'GIRIS' | 'CIKIS')}>
+                      <option value="GIRIS">Stok Girişi (＋)</option>
+                      <option value="CIKIS">Stok Çıkışı (－)</option>
                     </select>
                   </label>
 
                   <label>
-                    Miktar
+                    Miktar <b>*</b>
                     <input
                       type="number"
-                      min="0.001"
-                      step="0.001"
+                      min="1"
                       value={movementQuantity}
                       onChange={e => setMovementQuantity(e.target.value)}
-                      placeholder="0.00"
+                      placeholder="Miktar"
                       required
                     />
                   </label>
@@ -1270,118 +1164,115 @@ function App() {
 
                 <label style={{ marginTop: '12px' }}>
                   Açıklama / Not
-                  <textarea
+                  <input
+                    type="text"
                     value={movementNotes}
                     onChange={e => setMovementNotes(e.target.value)}
-                    placeholder="Örn. İrsaliye No: 12345, Fatura Vb."
-                    rows={2}
+                    placeholder="İşlem nedeni (örn. Tedarikçi teslimatı)"
                   />
                 </label>
 
-                {movementMessage && (
-                  <div className="message" role="status" style={{ marginTop: '12px' }}>
-                    {movementMessage}
-                  </div>
-                )}
+                {movementMessage && <div className="message" style={{ marginTop: '12px' }}>{movementMessage}</div>}
 
                 <div className="form-actions" style={{ marginTop: '16px' }}>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {
-                      setMovementQuantity('')
-                      setMovementNotes('')
-                      setMovementMessage('')
-                      setMovementStockCode('')
-                      setMovementSearch('')
-                    }}
-                  >
-                    Temizle
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="primary"
-                    style={{ background: movementType === 'GIRIS' ? '#16a34a' : '#dc2626' }}
-                  >
-                    {movementType === 'GIRIS' ? '＋ Stok Girişini Kaydet' : '－ Stok Çıkışını Kaydet'}
+                  <button type="submit" className="primary" style={{ width: '100%' }}>
+                    Hareketi Kaydet
                   </button>
                 </div>
               </form>
             </section>
 
             <section className="panel">
-              <div className="panel-heading">
-                <div className="panel-icon" style={{ background: '#f8fafc', color: '#475569' }}>📋</div>
+              <div className="list-heading">
                 <div>
-                  <h3>Son Stok Hareket Geçmişi</h3>
-                  <p>Sistemdeki en son 50 hareket listelenir.</p>
+                  <h3>Son Stok Hareketleri</h3>
+                  <p>Gerçekleşen son giriş ve çıkışlar</p>
                 </div>
+                <button type="button" className="secondary" onClick={loadMovementHistory} style={{ fontSize: '12px', padding: '4px 8px' }}>
+                  🔄 Yenile
+                </button>
               </div>
 
               {movementsLoading ? (
-                <p style={{ color: '#64748b', fontSize: '14px' }}>Hareketler yükleniyor...</p>
+                <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Yükleniyor...</div>
               ) : movements.length === 0 ? (
-                <div className="empty-state" style={{ padding: '20px 0' }}>
-                  <div className="empty-icon">📂</div>
-                  <h3>Henüz Stok Hareketi Yok</h3>
-                  <p>Soldaki formu kullanarak ilk giriş veya çıkış işlemini kaydedebilirsiniz.</p>
+                <div className="empty-state" style={{ padding: '30px 0' }}>
+                  <div className="empty-icon">⇄</div>
+                  <h3>Hareket Yok</h3>
+                  <p>Henüz kaydedilmiş bir stok hareketi bulunmuyor.</p>
                 </div>
               ) : (
-                <div className="stock-list" style={{ maxHeight: '480px', overflowY: 'auto', paddingRight: '4px' }}>
-                  {movements.map(movement => {
-                    const isGiris = movement.movement_type === 'GIRIS'
-                    return (
-                      <div
-                        className="stock-row"
-                        key={movement.id}
-                        style={{
-                          padding: '12px 14px',
-                          borderRadius: '8px',
-                          background: isGiris ? 'rgba(240, 253, 244, 0.6)' : 'rgba(254, 242, 242, 0.6)',
-                          borderLeft: `4px solid ${isGiris ? '#16a34a' : '#dc2626'}`,
-                          marginBottom: '8px',
-                        }}
-                      >
-                        <div className="stock-info" style={{ width: '100%' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                            <strong style={{ fontSize: '14px', color: '#0f172a' }}>{movement.stock_code}</strong>
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: '700',
-                                padding: '3px 8px',
-                                borderRadius: '12px',
-                                background: isGiris ? '#dcfce7' : '#fee2e2',
-                                color: isGiris ? '#15803d' : '#991b1b',
-                              }}
-                            >
-                              {isGiris ? '🟢 GİRİŞ (+)' : '🔴 ÇIKIŞ (-)'} {Number(movement.quantity).toLocaleString('tr-TR')}
-                            </span>
-                          </div>
-
-                          {movement.notes && (
-                            <div style={{ fontSize: '13px', color: '#334155', marginBottom: '4px' }}>
-                              📝 {movement.notes}
-                            </div>
-                          )}
-
-                          <small style={{ color: '#64748b', fontSize: '11px', display: 'block', textAlign: 'right' }}>
-                            👤 {movement.created_by_name || 'Sistem'} · 🕒 {new Date(movement.created_at).toLocaleString('tr-TR')}
-                          </small>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
+                  {movements.map(m => (
+                    <div
+                      key={m.id}
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <div>
+                        <div>
+                          <strong style={{ color: m.movement_type === 'GIRIS' ? '#15803d' : '#dc2626' }}>
+                            {m.movement_type === 'GIRIS' ? '＋ GİRİŞ' : '－ ÇIKIŞ'}
+                          </strong>{' '}
+                          — {m.stock_code}
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: '12px', marginTop: '2px' }}>
+                          {m.notes || 'Açıklama yok'} ({new Date(m.created_at).toLocaleString('tr-TR')})
                         </div>
                       </div>
-                    )
-                  })}
+                      <div style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                        {m.movement_type === 'GIRIS' ? '+' : '-'}{m.quantity}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </section>
           </div>
         )}
 
-        <footer>
-          FNDEPO <span>•</span> Stok Yönetim Sistemi
-        </footer>
+        {activeTab === 'settings' && isAdmin && (
+          <div className="layout">
+            <section className="panel" style={{ borderColor: '#fca5a5' }}>
+              <div className="panel-heading">
+                <div className="panel-icon" style={{ background: '#fee2e2', color: '#dc2626' }}>⚠️</div>
+                <div>
+                  <h3>Kritik Sistem İşlemleri</h3>
+                  <p>Tüm hareket geçmişini ve raf atamalarını sıfırlayın.</p>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '15px', fontSize: '14px', color: '#334155', lineHeight: '1.5' }}>
+                <p>Bu işlem:</p>
+                <ul style={{ paddingLeft: '20px', margin: '8px 0' }}>
+                  <li>Tüm stok hareket geçmişini buluttan kalıcı olarak siler.</li>
+                  <li>Tüm raflardaki ürün atamalarını kaldırır.</li>
+                  <li>Stok kartlarınızı silmez, sadece miktarlarını <strong>0</strong> yapar.</li>
+                </ul>
+              </div>
+
+              <div style={{ marginTop: '20px' }}>
+                <button
+                  type="button"
+                  className="delete-stock-btn"
+                  style={{ width: '100%', padding: '12px', fontSize: '14px' }}
+                  disabled={resetLoading}
+                  onClick={handleResetMovementsAndShelves}
+                >
+                  {resetLoading ? 'Sıfırlanıyor...' : '🗑️ Tüm Hareketleri ve Rafları Sıfırla'}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
       </section>
     </main>
   )
