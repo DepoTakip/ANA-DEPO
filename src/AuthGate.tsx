@@ -5,7 +5,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from './supabase'
+import { supabase } from '../supabase'
 
 type AuthGateProps = {
   children: ReactNode
