@@ -16,5 +16,5 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../supabase.ts"]
+  "include": ["src", "../supabase.ts", "src/ExcelImportPage.tsx"]
 }
