@@ -29,6 +29,12 @@ type ShelfAssignment = {
 }
 
 export default function App() {
+  const [session, setSession] = useState<any>(null)
+  const [sessionLoading, setSessionLoading] = useState(true)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
+
   const [isAdmin, setIsAdmin] = useState(false)
   const [activeTab, setActiveTab] = useState<'home' | 'stocks' | 'shelves' | 'control' | 'movements' | 'settings'>('home')
 
@@ -81,13 +87,24 @@ export default function App() {
   const [resetLoading, setResetLoading] = useState(false)
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setSessionLoading(false)
+    })
 
-      if (userError || !user) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setSessionLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!session?.user) {
         setIsAdmin(false)
         return
       }
@@ -95,14 +112,14 @@ export default function App() {
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id)
         .maybeSingle()
 
       setIsAdmin(!error && data?.role === 'admin')
     }
 
     void checkAdmin()
-  }, [])
+  }, [session])
 
   useEffect(() => {
     localStorage.setItem('depotakip_stocks', JSON.stringify(stocks))
@@ -113,6 +130,7 @@ export default function App() {
   }, [shelves])
 
   useEffect(() => {
+    if (!session) return
     let cancelled = false
 
     async function syncStocks() {
@@ -177,7 +195,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [session])
 
   async function loadMovementHistory() {
     setMovementsLoading(true)
@@ -201,8 +219,28 @@ export default function App() {
   }
 
   useEffect(() => {
-    void loadMovementHistory()
-  }, [])
+    if (session) {
+      void loadMovementHistory()
+    }
+  }, [session])
+
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setLoginError('')
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    })
+
+    if (error) {
+      setLoginError('Giriş başarısız: ' + error.message)
+    }
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+  }
 
   async function addMovement(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -412,7 +450,7 @@ export default function App() {
       return
     }
 
-    const confirm1 = window.confirm('Tüm raf atamaları ve stok hareket geçmişi silinecektir. Stok kartlarınız (ürünler) silinmeyecektir. Emin misiniz?')
+    const confirm1 = window.confirm('Tüm raf atamaları ve stok hareket geçmişi silinecektir. Stok kartlarınız silinmeyecektir. Emin misiniz?')
     if (!confirm1) return
 
     setResetLoading(true)
@@ -474,6 +512,62 @@ export default function App() {
       )
     : stocks
 
+  if (sessionLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'sans-serif', background: '#f8fafc' }}>
+        <p>Yükleniyor...</p>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <div className="brand" style={{ justifyContent: 'center', marginBottom: '24px' }}>
+            <div className="brand-icon">D</div>
+            <div>
+              <h2>FNDEPO</h2>
+              <span>Stok Yönetim Sistemi</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="login-field">
+              <label htmlFor="login-email">E-posta Adresi</label>
+              <input
+                id="login-email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="ornek@sirket.com"
+                required
+              />
+            </div>
+
+            <div className="login-field">
+              <label htmlFor="login-password">Şifre</label>
+              <input
+                id="login-password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {loginError && <div className="message" style={{ marginTop: '10px' }}>{loginError}</div>}
+
+            <button type="submit" className="primary" style={{ marginTop: '20px', width: '100%', padding: '12px' }}>
+              Giriş Yap
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <main className="app sidebar-closed">
       <aside className="sidebar">
@@ -490,7 +584,10 @@ export default function App() {
         <button
           type="button"
           className={activeTab === 'home' ? 'menu-item menu-button active' : 'menu-item menu-button'}
-          onClick={() => setActiveTab('home')}
+          onClick={() => {
+            setActiveTab('home')
+            document.querySelector('.app')?.classList.add('sidebar-closed')
+          }}
         >
           Ana Sayfa
         </button>
@@ -498,7 +595,10 @@ export default function App() {
         <button
           type="button"
           className={activeTab === 'stocks' ? 'menu-item menu-button active' : 'menu-item menu-button'}
-          onClick={() => setActiveTab('stocks')}
+          onClick={() => {
+            setActiveTab('stocks')
+            document.querySelector('.app')?.classList.add('sidebar-closed')
+          }}
         >
           ▦ Stok Kartları
         </button>
@@ -506,7 +606,10 @@ export default function App() {
         <button
           type="button"
           className={activeTab === 'shelves' ? 'menu-item menu-button active' : 'menu-item menu-button'}
-          onClick={() => setActiveTab('shelves')}
+          onClick={() => {
+            setActiveTab('shelves')
+            document.querySelector('.app')?.classList.add('sidebar-closed')
+          }}
         >
           ▤ Depo ve Raflar
         </button>
@@ -514,7 +617,10 @@ export default function App() {
         <button
           type="button"
           className={activeTab === 'control' ? 'menu-item menu-button active' : 'menu-item menu-button'}
-          onClick={() => setActiveTab('control')}
+          onClick={() => {
+            setActiveTab('control')
+            document.querySelector('.app')?.classList.add('sidebar-closed')
+          }}
         >
           📊 Stok Kontrol
         </button>
@@ -522,7 +628,10 @@ export default function App() {
         <button
           type="button"
           className={activeTab === 'movements' ? 'menu-item menu-button active' : 'menu-item menu-button'}
-          onClick={() => setActiveTab('movements')}
+          onClick={() => {
+            setActiveTab('movements')
+            document.querySelector('.app')?.classList.add('sidebar-closed')
+          }}
         >
           ⇄ Stok Hareketleri
         </button>
@@ -531,11 +640,24 @@ export default function App() {
           <button
             type="button"
             className={activeTab === 'settings' ? 'menu-item menu-button active' : 'menu-item menu-button'}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => {
+              setActiveTab('settings')
+              document.querySelector('.app')?.classList.add('sidebar-closed')
+            }}
           >
             ⚙ Ayarlar
           </button>
         )}
+
+        <div style={{ marginTop: 'auto', padding: '15px' }}>
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{ width: '100%', background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            Çıkış Yap
+          </button>
+        </div>
 
         <div className="sidebar-bottom">Depo yönetimi artık daha kolay.</div>
       </aside>
@@ -547,9 +669,9 @@ export default function App() {
               type="button"
               className="toggle-sidebar-btn" 
               onClick={() => {
-                const appElement = document.querySelector('.app');
+                const appElement = document.querySelector('.app')
                 if (appElement) {
-                  appElement.classList.toggle('sidebar-closed');
+                  appElement.classList.toggle('sidebar-closed')
                 }
               }}
               style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '16px' }}
@@ -580,7 +702,7 @@ export default function App() {
           <div className="welcome">
             <div>
               <h2>FNDEPO Ağır Vasıta Yedek Parça Deposu</h2>
-              <p>Sol üstteki menü butonuna (☰) basarak menüyü açabilir, stok kartlarını yönetebilir ve hareketleri takip edebilirsiniz.</p>
+              <p>Sol üstteki menü butonuna (☰) basarak menüyü açabilir, istediğiniz sekmeyi seçerek otomatik kapanmasını sağlayabilirsiniz.</p>
             </div>
           </div>
         )}
@@ -1251,7 +1373,7 @@ export default function App() {
               </div>
 
               <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px' }}>
-                Bu işlem stok kartlarınızın (ürünlerin) kaybolmasına neden olmaz, ancak tüm stok adetlerini sıfıra indirir ve hareket geçmişini temizler. Yönetici yetkisi gerektirir.
+                Bu işlem stok kartlarınızın kaybolmasına neden olmaz, ancak tüm stok adetlerini sıfıra indirir ve hareket geçmişini temizler. Yönetici yetkisi gerektirir.
               </p>
 
               <button
