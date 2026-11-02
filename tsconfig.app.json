@@ -23,5 +23,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "supabase.ts"]
+  "include": ["src", "src/src/supabase.ts"]
 }
